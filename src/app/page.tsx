@@ -1,16 +1,30 @@
+'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-export const dynamic = 'force-dynamic'
+type Settings = {
+  show_overall_stats: boolean
+  show_personal_stats: boolean
+}
 
-export default async function Home() {
-  const { data } = await supabase.from('app_settings').select('key, value')
+export default function Home() {
+  const [settings, setSettings] = useState<Settings | null>(null)
 
-  const settings = { show_overall_stats: true, show_personal_stats: true }
-  for (const row of data ?? []) {
-    if (row.key === 'show_overall_stats') settings.show_overall_stats = row.value === 'true'
-    if (row.key === 'show_personal_stats') settings.show_personal_stats = row.value === 'true'
-  }
+  useEffect(() => {
+    supabase
+      .from('app_settings')
+      .select('key, value')
+      .then(({ data }) => {
+        const result: Settings = { show_overall_stats: true, show_personal_stats: true }
+        for (const row of data ?? []) {
+          if (row.key === 'show_overall_stats') result.show_overall_stats = row.value === 'true'
+          if (row.key === 'show_personal_stats') result.show_personal_stats = row.value === 'true'
+        }
+        setSettings(result)
+      })
+  }, [])
 
   return (
     <main className="flex flex-col min-h-screen p-4">
@@ -32,7 +46,9 @@ export default async function Home() {
         >
           오늘의 경기 목록
         </Link>
-        {settings.show_personal_stats && (
+
+        {/* 설정 로드 전에는 숨김, 로드 후 DB 값에 따라 표시 */}
+        {settings?.show_personal_stats && (
           <Link
             href="/stats"
             className="bg-white text-gray-700 text-center py-4 rounded-xl text-lg font-semibold shadow border border-gray-200 active:bg-gray-50"
@@ -40,7 +56,7 @@ export default async function Home() {
             개인 통계
           </Link>
         )}
-        {settings.show_overall_stats && (
+        {settings?.show_overall_stats && (
           <Link
             href="/overall"
             className="bg-white text-gray-700 text-center py-4 rounded-xl text-lg font-semibold shadow border border-gray-200 active:bg-gray-50"
@@ -48,6 +64,7 @@ export default async function Home() {
             전체 통계
           </Link>
         )}
+
         <Link
           href="/request"
           className="bg-white text-gray-700 text-center py-4 rounded-xl text-lg font-semibold shadow border border-gray-200 active:bg-gray-50"
