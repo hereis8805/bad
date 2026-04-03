@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -19,11 +20,20 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 export default function AdminRequestsPage() {
+  const router = useRouter()
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'done'>('all')
 
   useEffect(() => {
+    // 관리자 인증 확인
+    if (typeof window !== 'undefined') {
+      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      if (!isAuthed) {
+        router.push('/admin')
+        return
+      }
+    }
     loadRequests()
   }, [])
 

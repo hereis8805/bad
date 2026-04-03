@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -12,6 +13,7 @@ const SETTINGS: { key: SettingKey; label: string; desc: string }[] = [
 ]
 
 export default function AdminSettingsPage() {
+  const router = useRouter()
   const [values, setValues] = useState<Record<SettingKey, boolean>>({
     show_overall_stats: true,
     show_personal_stats: true,
@@ -20,6 +22,15 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState<SettingKey | null>(null)
 
   useEffect(() => {
+    // 관리자 인증 확인
+    if (typeof window !== 'undefined') {
+      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      if (!isAuthed) {
+        router.push('/admin')
+        return
+      }
+    }
+
     supabase
       .from('settings')
       .select('key, value')

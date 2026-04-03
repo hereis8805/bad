@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -48,12 +49,21 @@ function matchesSearch(game: GameWithPlayers, query: string): boolean {
 }
 
 export default function GamesManagementPage() {
+  const router = useRouter()
   const [games, setGames] = useState<GameWithPlayers[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
+    // 관리자 인증 확인
+    if (typeof window !== 'undefined') {
+      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      if (!isAuthed) {
+        router.push('/admin')
+        return
+      }
+    }
     fetchGames()
   }, [])
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -15,10 +15,23 @@ export default function AdminPage() {
     if (pw === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       setAuthed(true)
       setError(false)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_authed', 'true')
+      }
     } else {
       setError(true)
     }
   }
+
+  useEffect(() => {
+    // 페이지 로드 시 기존 인증 상태 복구
+    if (typeof window !== 'undefined') {
+      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      if (isAuthed) {
+        setAuthed(true)
+      }
+    }
+  }, [])
 
   if (!authed) {
     return (

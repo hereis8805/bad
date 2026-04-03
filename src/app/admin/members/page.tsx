@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase, type Member, type Gender, type SkillLevel } from '@/lib/supabase'
 
@@ -16,6 +17,7 @@ const SKILL_COLORS: Record<SkillLevel, string> = {
 const CURRENT_YEAR = new Date().getFullYear()
 
 export default function MembersPage() {
+  const router = useRouter()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -28,8 +30,17 @@ export default function MembersPage() {
     skill_level: '초심' as SkillLevel,
     birth_year: '',
   })
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   useEffect(() => {
+    // 관리자 인증 확인
+    if (typeof window !== 'undefined') {
+      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      if (!isAuthed) {
+        router.push('/admin')
+        return
+      }
+    }
     fetchMembers()
   }, [])
 
@@ -46,16 +57,47 @@ export default function MembersPage() {
     e.preventDefault()
     if (!form.name.trim() || !form.birth_year) return
     setSubmitting(true)
-    await supabase.from('members').insert({
-      name: form.name.trim(),
-      gender: form.gender,
-      skill_level: form.skill_level,
-      birth_year: parseInt(form.birth_year),
-    })
+
+    if (editingId) {
+      // 수정 모드
+      await supabase.from('members').update({
+        name: form.name.trim(),
+        gender: form.gender,
+        skill_level: form.skill_level,
+        birth_year: parseInt(form.birth_year),
+      }).eq('id', editingId)
+      setEditingId(null)
+    } else {
+      // 추가 모드
+      await supabase.from('members').insert({
+        name: form.name.trim(),
+        gender: form.gender,
+        skill_level: form.skill_level,
+        birth_year: parseInt(form.birth_year),
+      })
+      setShowForm(false)
+    }
+
     setForm({ name: '', gender: 'M', skill_level: '초심', birth_year: '' })
-    setShowForm(false)
     await fetchMembers()
     setSubmitting(false)
+  }
+
+  function startEdit(member: Member) {
+    setEditingId(member.id)
+    setForm({
+      name: member.name,
+      gender: member.gender,
+      skill_level: member.skill_level,
+      birth_year: String(member.birth_year),
+    })
+    setShowForm(true)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setShowForm(false)
+    setForm({ name: '', gender: 'M', skill_level: '초심', birth_year: '' })
   }
 
   async function handleDelete(id: string, name: string) {
@@ -108,12 +150,20 @@ export default function MembersPage() {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">{member.birth_year}년생 · {CURRENT_YEAR - member.birth_year}세</p>
                 </div>
-                <button
-                  onClick={() => handleDelete(member.id, member.name)}
-                  className="text-red-400 text-sm px-2 py-1 rounded active:bg-red-50"
-                >
-                  삭제
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => startEdit(member)}
+                    className="text-blue-400 text-sm px-2 py-1 rounded active:bg-blue-50"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDelete(member.id, member.name)}
+                    className="text-red-400 text-sm px-2 py-1 rounded active:bg-red-50"
+                  >
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -128,7 +178,18 @@ export default function MembersPage() {
             onClick={e => e.stopPropagation()}
             onSubmit={handleSubmit}
           >
-            <h2 className="font-bold text-base">회원 추가</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base">{editingId ? '회원 수정' : '회원 추가'}</h2>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="text-gray-400 text-lg"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
 
             <div>
               <label className="text-sm text-gray-600 mb-1 block">이름</label>
@@ -201,7 +262,7 @@ export default function MembersPage() {
               disabled={submitting}
               className="bg-blue-500 text-white py-3 rounded-xl font-semibold text-base disabled:opacity-50"
             >
-              {submitting ? '저장 중...' : '추가하기'}
+              {submitting ? '저장 중...' : editingId ? '수정완료' : '추가하기'}
             </button>
           </form>
         </div>
