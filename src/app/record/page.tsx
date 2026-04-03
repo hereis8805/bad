@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase, type GameType, type Court, type Member } from '@/lib/supabase'
+import { supabase, type GameType, type Member } from '@/lib/supabase'
 
-type Step = 'type' | 'court' | 'players' | 'score'
+type Step = 'type' | 'players' | 'score'
 
 const GAME_TYPES: { value: GameType; label: string; desc: string }[] = [
   { value: 'singles', label: '단식', desc: '1 : 1' },
@@ -13,82 +12,158 @@ const GAME_TYPES: { value: GameType; label: string; desc: string }[] = [
   { value: 'half_singles', label: '반코트 단식', desc: '1 : 1' },
 ]
 
+const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+
+function getChosung(char: string): string {
+  const code = char.charCodeAt(0)
+  if (code >= 0xAC00 && code <= 0xD7A3) {
+    return CHOSUNG[Math.floor((code - 0xAC00) / 28 / 21)]
+  }
+  return char
+}
+
+function matchesSearch(name: string, query: string): boolean {
+  if (!query.trim()) return true
+  const q = query.trim()
+  if (name.toLowerCase().includes(q.toLowerCase())) return true
+  const isChosungQuery = [...q].every(c => CHOSUNG.includes(c))
+  if (isChosungQuery) {
+    const nameChosung = [...name].map(getChosung).join('')
+    return nameChosung.includes(q)
+  }
+  return false
+}
+
+type SlotKey = string
+
 export default function RecordPage() {
   const router = useRouter()
   const [step, setStep] = useState<Step>('type')
   const [gameType, setGameType] = useState<GameType | null>(null)
-  const [court, setCourt] = useState<Court | null>(null)
 
-  // 선수 선택
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<Member[]>([])
-  const [team1, setTeam1] = useState<Member[]>([])
-  const [team2, setTeam2] = useState<Member[]>([])
-  const [selectingTeam, setSelectingTeam] = useState<1 | 2>(1)
+  const [allMembers, setAllMembers] = useState<Member[]>([])
+  const [team1, setTeam1] = useState<(Member | undefined)[]>([])
+  const [team2, setTeam2] = useState<(Member | undefined)[]>([])
+  const [slotQueries, setSlotQueries] = useState<Record<SlotKey, string>>({})
+  const [activeSlot, setActiveSlot] = useState<SlotKey | null>(null)
 
-  // 점수
   const [score1, setScore1] = useState('')
   const [score2, setScore2] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const maxPlayers = gameType === 'doubles' ? 2 : 1
 
-  async function searchMembers(query: string) {
-    setSearchQuery(query)
-    if (!query.trim()) {
-      setSearchResults([])
-      return
+  useEffect(() => {
+    if (step === 'players') {
+      supabase.from('members').select('*').order('name').then(({ data }) => {
+        setAllMembers(data ?? [])
+      })
     }
-    const { data } = await supabase
-      .from('members')
-      .select('*')
-      .ilike('name', `%${query}%`)
-      .limit(10)
-    setSearchResults(data ?? [])
+  }, [step])
+
+  function getFilteredMembers(team: 1 | 2, index: number): Member[] {
+    const key = `${team}_${index}`
+    const query = slotQueries[key] ?? ''
+    const selectedIds = new Set([
+      ...team1.filter(Boolean).map(m => m!.id),
+      ...team2.filter(Boolean).map(m => m!.id),
+    ])
+    return allMembers.filter(m => !selectedIds.has(m.id) && matchesSearch(m.name, query))
   }
 
-  function selectPlayer(member: Member) {
-    const alreadySelected = [...team1, ...team2].some(m => m.id === member.id)
-    if (alreadySelected) return
-
-    if (selectingTeam === 1 && team1.length < maxPlayers) {
-      setTeam1(prev => [...prev, member])
-    } else if (selectingTeam === 2 && team2.length < maxPlayers) {
-      setTeam2(prev => [...prev, member])
-    }
-    setSearchQuery('')
-    setSearchResults([])
+  function selectPlayer(team: 1 | 2, index: number, member: Member) {
+    const setter = team === 1 ? setTeam1 : setTeam2
+    setter(prev => {
+      const arr = [...prev]
+      arr[index] = member
+      return arr
+    })
+    setSlotQueries(prev => ({ ...prev, [`${team}_${index}`]: '' }))
+    setActiveSlot(null)
   }
 
-  function removePlayer(team: 1 | 2, id: string) {
-    if (team === 1) setTeam1(prev => prev.filter(m => m.id !== id))
-    else setTeam2(prev => prev.filter(m => m.id !== id))
+  function removePlayer(team: 1 | 2, index: number) {
+    const setter = team === 1 ? setTeam1 : setTeam2
+    setter(prev => { const arr = [...prev]; arr[index] = undefined; return arr })
   }
 
-  const playersReady =
-    team1.length === maxPlayers && team2.length === maxPlayers
+  const filledTeam1 = team1.filter(Boolean).length
+  const filledTeam2 = team2.filter(Boolean).length
+  const playersReady = filledTeam1 === maxPlayers && filledTeam2 === maxPlayers
 
   async function handleSubmit() {
-    if (!gameType || !court) return
-    if (!score1 || !score2) return
+    if (!gameType || !score1 || !score2) return
     setSubmitting(true)
 
     const { data: game } = await supabase
       .from('games')
-      .insert({ game_type: gameType, court })
+      .insert({ game_type: gameType })
       .select()
       .single()
 
     if (!game) { setSubmitting(false); return }
 
-    const playerRows = [
-      ...team1.map(m => ({ game_id: game.id, member_id: m.id, team: 1, score: parseInt(score1) })),
-      ...team2.map(m => ({ game_id: game.id, member_id: m.id, team: 2, score: parseInt(score2) })),
-    ]
-    await supabase.from('game_players').insert(playerRows)
+    const t1 = team1.filter(Boolean) as Member[]
+    const t2 = team2.filter(Boolean) as Member[]
+    await supabase.from('game_players').insert([
+      ...t1.map(m => ({ game_id: game.id, member_id: m.id, team: 1, score: parseInt(score1) })),
+      ...t2.map(m => ({ game_id: game.id, member_id: m.id, team: 2, score: parseInt(score2) })),
+    ])
 
     setSubmitting(false)
     router.push('/games')
+  }
+
+  function renderSlot(team: 1 | 2, index: number) {
+    const player = (team === 1 ? team1 : team2)[index]
+    const key: SlotKey = `${team}_${index}`
+    const query = slotQueries[key] ?? ''
+    const isActive = activeSlot === key
+    const filtered = getFilteredMembers(team, index)
+
+    if (player) {
+      return (
+        <div key={key} className="flex items-center gap-1.5 px-2 py-2 rounded-lg border bg-blue-50 border-blue-200">
+          <p className="flex-1 min-w-0 font-semibold text-gray-800 text-sm truncate">{player.name}</p>
+          <button onClick={() => removePlayer(team, index)} className="shrink-0 text-red-400 text-xs">✕</button>
+        </div>
+      )
+    }
+
+    return (
+      <div key={key} className="relative">
+        <input
+          type="text"
+          placeholder="검색..."
+          value={query}
+          onFocus={() => setActiveSlot(key)}
+          onBlur={() => setTimeout(() => setActiveSlot(prev => prev === key ? null : prev), 200)}
+          onChange={e => {
+            setSlotQueries(prev => ({ ...prev, [key]: e.target.value }))
+            setActiveSlot(key)
+          }}
+          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm outline-none focus:border-blue-400 bg-white"
+        />
+        {isActive && (
+          <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto min-w-[160px] w-max max-w-[80vw]">
+            {filtered.length === 0 ? (
+              <p className="px-3 py-3 text-sm text-gray-400 text-center whitespace-nowrap">
+                {allMembers.length === 0 ? '로딩 중...' : '결과 없음'}
+              </p>
+            ) : filtered.map(m => (
+              <button
+                key={m.id}
+                onMouseDown={() => selectPlayer(team, index, m)}
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-left border-b border-gray-100 last:border-0 hover:bg-blue-50 active:bg-blue-100 whitespace-nowrap"
+              >
+                <span className="font-medium text-gray-800 text-sm">{m.name}</span>
+                <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -97,8 +172,7 @@ export default function RecordPage() {
         <button
           onClick={() => {
             if (step === 'type') router.push('/')
-            else if (step === 'court') setStep('type')
-            else if (step === 'players') setStep('court')
+            else if (step === 'players') setStep('type')
             else setStep('players')
           }}
           className="text-gray-500 text-xl"
@@ -108,8 +182,8 @@ export default function RecordPage() {
 
       {/* 진행 단계 표시 */}
       <div className="flex bg-white border-b">
-        {(['type', 'court', 'players', 'score'] as Step[]).map((s, i) => (
-          <div key={s} className={`flex-1 h-1 ${step === s ? 'bg-blue-500' : i < ['type','court','players','score'].indexOf(step) ? 'bg-blue-200' : 'bg-gray-100'}`} />
+        {(['type', 'players', 'score'] as Step[]).map((s, i) => (
+          <div key={s} className={`flex-1 h-1 ${step === s ? 'bg-blue-500' : i < ['type','players','score'].indexOf(step) ? 'bg-blue-200' : 'bg-gray-100'}`} />
         ))}
       </div>
 
@@ -123,7 +197,7 @@ export default function RecordPage() {
               {GAME_TYPES.map(t => (
                 <button
                   key={t.value}
-                  onClick={() => { setGameType(t.value); setStep('court') }}
+                  onClick={() => { setGameType(t.value); setStep('players') }}
                   className="bg-white border border-gray-200 rounded-xl p-4 text-left shadow-sm active:bg-blue-50 active:border-blue-300"
                 >
                   <p className="font-semibold text-gray-800">{t.label}</p>
@@ -134,99 +208,37 @@ export default function RecordPage() {
           </>
         )}
 
-        {/* STEP 2: 코트 선택 */}
-        {step === 'court' && (
+        {/* STEP 2: 선수 입력 (코트 레이아웃) */}
+        {step === 'players' && (
           <>
-            <p className="text-gray-600 font-medium">코트를 선택하세요</p>
-            <div className="flex flex-col gap-0">
+            {/* 코트 시각화 + 선수 입력 */}
+            <div className="flex flex-col">
               {/* 단상 */}
               <div className="bg-gray-200 border border-gray-300 rounded-t-xl py-3 text-center">
                 <p className="text-sm font-semibold text-gray-500 tracking-widest">단 상</p>
               </div>
-              {/* A면 B면 */}
-              <div className="flex">
-                {(['A', 'B'] as Court[]).map((c, i) => (
-                  <button
-                    key={c}
-                    onClick={() => { setCourt(c); setStep('players') }}
-                    className={`flex-1 bg-white border border-t-0 border-gray-200 py-10 text-center shadow-sm active:bg-blue-50 active:border-blue-300 ${i === 0 ? 'border-r-0 rounded-bl-xl' : 'rounded-br-xl'}`}
-                  >
-                    <p className="text-3xl font-bold text-gray-700">{c}</p>
-                    <p className="text-sm text-gray-400 mt-1">{c}면</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
 
-        {/* STEP 3: 선수 선택 */}
-        {step === 'players' && (
-          <>
-            <p className="text-gray-600 font-medium">선수를 선택하세요</p>
-
-            {/* 팀 선택 탭 */}
-            <div className="flex gap-2">
-              {([1, 2] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setSelectingTeam(t)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    selectingTeam === t
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'bg-white text-gray-600 border-gray-200'
-                  }`}
-                >
-                  팀 {t} {t === 1 ? `(${team1.length}/${maxPlayers})` : `(${team2.length}/${maxPlayers})`}
-                </button>
-              ))}
-            </div>
-
-            {/* 선택된 선수 */}
-            <div className="flex flex-col gap-2">
-              {[...Array(maxPlayers)].map((_, i) => {
-                const player = selectingTeam === 1 ? team1[i] : team2[i]
-                return (
-                  <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${player ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-dashed border-gray-200'}`}>
-                    {player ? (
-                      <>
-                        <span className="flex-1 font-medium text-gray-800">{player.name}</span>
-                        <button onClick={() => removePlayer(selectingTeam, player.id)} className="text-red-400 text-sm">✕</button>
-                      </>
-                    ) : (
-                      <span className="text-gray-400 text-sm">선수 {i + 1} 검색하여 선택</span>
-                    )}
+              {/* A면(팀1) | B면(팀2) */}
+              <div className="flex border border-t-0 border-gray-200 rounded-b-xl overflow-visible bg-white shadow-sm">
+                {/* 팀 1 (A면) */}
+                <div className="flex-1 p-3 flex flex-col gap-2 border-r border-gray-200 overflow-visible">
+                  <div className="flex items-center gap-1.5">
+                    <span className="bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">팀 1</span>
+                    <span className="text-xs text-gray-400">A면</span>
                   </div>
-                )
-              })}
-            </div>
+                  {Array.from({ length: maxPlayers }, (_, i) => renderSlot(1, i))}
+                </div>
 
-            {/* 검색 */}
-            <input
-              type="text"
-              placeholder="이름으로 검색..."
-              value={searchQuery}
-              onChange={e => searchMembers(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-400"
-            />
-            {searchResults.length > 0 && (
-              <div className="flex flex-col gap-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                {searchResults.map(m => {
-                  const selected = [...team1, ...team2].some(p => p.id === m.id)
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => selectPlayer(m)}
-                      disabled={selected}
-                      className={`flex items-center gap-3 px-4 py-3 text-left border-b border-gray-100 last:border-0 ${selected ? 'opacity-30' : 'active:bg-blue-50'}`}
-                    >
-                      <span className="font-medium text-gray-800">{m.name}</span>
-                      <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'} · {m.birth_year}년생</span>
-                    </button>
-                  )
-                })}
+                {/* 팀 2 (B면) */}
+                <div className="flex-1 p-3 flex flex-col gap-2 overflow-visible">
+                  <div className="flex items-center gap-1.5">
+                    <span className="bg-red-400 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">팀 2</span>
+                    <span className="text-xs text-gray-400">B면</span>
+                  </div>
+                  {Array.from({ length: maxPlayers }, (_, i) => renderSlot(2, i))}
+                </div>
               </div>
-            )}
+            </div>
 
             {playersReady && (
               <button
@@ -239,14 +251,14 @@ export default function RecordPage() {
           </>
         )}
 
-        {/* STEP 4: 점수 입력 */}
+        {/* STEP 3: 점수 입력 */}
         {step === 'score' && (
           <>
             <p className="text-gray-600 font-medium">최종 점수를 입력하세요</p>
 
             <div className="flex items-center gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <div className="flex-1 text-center">
-                {team1.map(m => <p key={m.id} className="font-semibold text-gray-800">{m.name}</p>)}
+                {(team1.filter(Boolean) as Member[]).map(m => <p key={m.id} className="font-semibold text-gray-800">{m.name}</p>)}
                 <input
                   type="number"
                   value={score1}
@@ -258,7 +270,7 @@ export default function RecordPage() {
               </div>
               <span className="text-gray-300 text-2xl font-light">:</span>
               <div className="flex-1 text-center">
-                {team2.map(m => <p key={m.id} className="font-semibold text-gray-800">{m.name}</p>)}
+                {(team2.filter(Boolean) as Member[]).map(m => <p key={m.id} className="font-semibold text-gray-800">{m.name}</p>)}
                 <input
                   type="number"
                   value={score2}

@@ -1,8 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, type Member } from '@/lib/supabase'
+
+const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
+
+function getChosung(char: string): string {
+  const code = char.charCodeAt(0)
+  if (code >= 0xAC00 && code <= 0xD7A3) {
+    return CHOSUNG[Math.floor((code - 0xAC00) / 28 / 21)]
+  }
+  return char
+}
+
+function matchesSearch(name: string, query: string): boolean {
+  if (!query.trim()) return true
+  const q = query.trim()
+  if (name.toLowerCase().includes(q.toLowerCase())) return true
+  const isChosungQuery = [...q].every(c => CHOSUNG.includes(c))
+  if (isChosungQuery) {
+    const nameChosung = [...name].map(getChosung).join('')
+    return nameChosung.includes(q)
+  }
+  return false
+}
 
 type GameRow = {
   game_id: string
@@ -47,22 +69,24 @@ const GAME_TYPE_LABEL: Record<string, string> = {
 
 export default function StatsPage() {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<Member[]>([])
+  const [allMembers, setAllMembers] = useState<Member[]>([])
+  const [isOpen, setIsOpen] = useState(false)
   const [selected, setSelected] = useState<Member | null>(null)
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function searchMembers(q: string) {
-    setQuery(q)
-    if (!q.trim()) { setResults([]); return }
-    const { data } = await supabase.from('members').select('*').ilike('name', `%${q}%`).limit(10)
-    setResults(data ?? [])
-  }
+  useEffect(() => {
+    supabase.from('members').select('*').order('name').then(({ data }) => {
+      setAllMembers(data ?? [])
+    })
+  }, [])
+
+  const filteredMembers = allMembers.filter(m => matchesSearch(m.name, query))
 
   async function selectMember(member: Member) {
     setSelected(member)
     setQuery('')
-    setResults([])
+    setIsOpen(false)
     setLoading(true)
     await loadStats(member)
     setLoading(false)
@@ -194,21 +218,25 @@ export default function StatsPage() {
 
       <div className="p-4 flex flex-col gap-4">
         {/* 회원 검색 */}
-        <div>
+        <div className="relative">
           <input
             type="text"
-            placeholder="회원 이름 검색..."
+            placeholder="이름 검색 (초성 가능)..."
             value={query}
-            onChange={e => searchMembers(e.target.value)}
-            className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-blue-400 bg-white"
+            onFocus={() => setIsOpen(true)}
+            onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+            onChange={e => { setQuery(e.target.value); setIsOpen(true) }}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-blue-400 bg-white"
           />
-          {results.length > 0 && (
-            <div className="mt-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-              {results.map(m => (
+          {isOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-60 overflow-y-auto">
+              {filteredMembers.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-gray-400 text-center">검색 결과 없음</p>
+              ) : filteredMembers.map(m => (
                 <button
                   key={m.id}
-                  onClick={() => selectMember(m)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-100 last:border-0 active:bg-blue-50"
+                  onMouseDown={() => selectMember(m)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-gray-100 last:border-0 hover:bg-blue-50 active:bg-blue-100"
                 >
                   <span className="font-medium text-gray-800">{m.name}</span>
                   <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'} · {m.birth_year}년생</span>
@@ -226,7 +254,7 @@ export default function StatsPage() {
             <div className="bg-blue-500 text-white rounded-xl p-4">
               <p className="text-lg font-bold">{selected.name}</p>
               <p className="text-blue-100 text-sm mt-0.5">
-                {selected.gender === 'M' ? '남' : '여'} · {selected.birth_year}년생 · {selected.skill_level}
+                {selected.gender === 'M' ? '남' : '여'} · {selected.birth_year}년생
               </p>
             </div>
 

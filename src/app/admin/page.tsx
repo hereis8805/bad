@@ -64,10 +64,27 @@ export default function AdminPage() {
           <span className="text-gray-400 text-lg">→</span>
         </Link>
 
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 opacity-40">
-          <p className="font-semibold text-gray-800">통계 공개설정</p>
-          <p className="text-xs text-gray-400 mt-0.5">준비 중</p>
-        </div>
+        <Link
+          href="/admin/requests"
+          className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+        >
+          <div>
+            <p className="font-semibold text-gray-800">요청 · 건의 관리</p>
+            <p className="text-xs text-gray-400 mt-0.5">회원 건의사항 확인</p>
+          </div>
+          <span className="text-gray-400 text-lg">→</span>
+        </Link>
+
+        <Link
+          href="/admin/settings"
+          className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+        >
+          <div>
+            <p className="font-semibold text-gray-800">통계 공개 설정</p>
+            <p className="text-xs text-gray-400 mt-0.5">전체·개인 통계 메뉴 공개 여부</p>
+          </div>
+          <span className="text-gray-400 text-lg">→</span>
+        </Link>
       </div>
     </div>
   )
