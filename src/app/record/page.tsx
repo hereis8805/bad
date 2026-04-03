@@ -50,6 +50,7 @@ export default function RecordPage() {
   const [score1, setScore1] = useState('')
   const [score2, setScore2] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   const maxPlayers = gameType === 'doubles' ? 2 : 1
 
@@ -94,24 +95,46 @@ export default function RecordPage() {
   async function handleSubmit() {
     if (!gameType || !score1 || !score2) return
     setSubmitting(true)
+    setError('')
 
-    const { data: game } = await supabase
-      .from('games')
-      .insert({ game_type: gameType })
-      .select()
-      .single()
+    try {
+      const { data: game, error: gameError } = await supabase
+        .from('games')
+        .insert({ game_type: gameType, court: 'A', played_at: new Date().toISOString() })
+        .select()
+        .single()
 
-    if (!game) { setSubmitting(false); return }
+      if (gameError) {
+        setError(gameError.message)
+        setSubmitting(false)
+        return
+      }
 
-    const t1 = team1.filter(Boolean) as Member[]
-    const t2 = team2.filter(Boolean) as Member[]
-    await supabase.from('game_players').insert([
-      ...t1.map(m => ({ game_id: game.id, member_id: m.id, team: 1, score: parseInt(score1) })),
-      ...t2.map(m => ({ game_id: game.id, member_id: m.id, team: 2, score: parseInt(score2) })),
-    ])
+      if (!game) {
+        setError('경기 생성 실패')
+        setSubmitting(false)
+        return
+      }
 
-    setSubmitting(false)
-    router.push('/games')
+      const t1 = team1.filter(Boolean) as Member[]
+      const t2 = team2.filter(Boolean) as Member[]
+      const { error: playersError } = await supabase.from('game_players').insert([
+        ...t1.map(m => ({ game_id: game.id, member_id: m.id, team: 1, score: parseInt(score1) })),
+        ...t2.map(m => ({ game_id: game.id, member_id: m.id, team: 2, score: parseInt(score2) })),
+      ])
+
+      if (playersError) {
+        setError(playersError.message)
+        setSubmitting(false)
+        return
+      }
+
+      setSubmitting(false)
+      router.push('/games')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류 발생')
+      setSubmitting(false)
+    }
   }
 
   function renderSlot(team: 1 | 2, index: number) {
@@ -157,7 +180,7 @@ export default function RecordPage() {
                 className="flex items-center gap-2 w-full px-3 py-2.5 text-left border-b border-gray-100 last:border-0 hover:bg-blue-50 active:bg-blue-100 whitespace-nowrap"
               >
                 <span className="font-medium text-gray-800 text-sm">{m.name}</span>
-                <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'}</span>
+                <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'} · {m.birth_year}년생</span>
               </button>
             ))}
           </div>
@@ -255,6 +278,12 @@ export default function RecordPage() {
         {step === 'score' && (
           <>
             <p className="text-gray-600 font-medium">최종 점수를 입력하세요</p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
             <div className="flex items-center gap-4 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
               <div className="flex-1 text-center">

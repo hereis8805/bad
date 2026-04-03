@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "배드민턴 클럽",
   description: "배드민턴 클럽 경기 기록",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export const viewport: Viewport = {
