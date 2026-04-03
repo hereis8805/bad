@@ -81,7 +81,7 @@ export default function MembersPage() {
         {/* 검색 */}
         <input
           type="text"
-          placeholder="이름 검색..."
+          placeholder="검색(초성가능)"
           value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm bg-white outline-none focus:border-blue-400"

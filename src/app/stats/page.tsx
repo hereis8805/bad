@@ -221,7 +221,7 @@ export default function StatsPage() {
         <div className="relative">
           <input
             type="text"
-            placeholder="이름 검색 (초성 가능)..."
+            placeholder="검색(초성가능)"
             value={query}
             onFocus={() => setIsOpen(true)}
             onBlur={() => setTimeout(() => setIsOpen(false), 200)}

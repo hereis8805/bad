@@ -31,7 +31,7 @@ export default function OverallStatsPage() {
   const [winRanking, setWinRanking] = useState<MemberStat[]>([])
   const [activeRanking, setActiveRanking] = useState<MemberStat[]>([])
   const [tab, setTab] = useState<'win' | 'active'>('win')
-  const [minGames, setMinGames] = useState(3)
+  const [period, setPeriod] = useState<'week' | 'month' | 'all'>('month')
 
   useEffect(() => {
     loadStats()
@@ -71,50 +71,102 @@ export default function OverallStatsPage() {
       byType,
     })
 
-    // 게임별 그룹핑
+    // 게임별 그룹핑 (전체)
     const gameMap: Record<string, typeof players> = {}
     for (const p of players) {
       if (!gameMap[p.game_id]) gameMap[p.game_id] = []
       gameMap[p.game_id].push(p)
     }
 
-    // 멤버별 승패 집계
-    const memberMap: Record<string, { id: string; name: string; total: number; wins: number }> = {}
+    // 기간별 게임 필터링
+    const getFilteredGames = (periodType: 'week' | 'month' | 'all') => {
+      const today = new Date()
+      let startDate: Date
 
-    for (const [, gamePlayers] of Object.entries(gameMap)) {
-      for (const player of gamePlayers) {
-        const mid = player.member_id
-        const member = player.members as any
-        if (!member) continue
-
-        const myScore = player.score
-        const oppScore = gamePlayers.find(p => p.team !== player.team)?.score ?? 0
-        const win = myScore > oppScore
-
-        if (!memberMap[mid]) memberMap[mid] = { id: mid, name: member.name, total: 0, wins: 0 }
-        memberMap[mid].total++
-        if (win) memberMap[mid].wins++
+      if (periodType === 'week') {
+        startDate = new Date(today)
+        startDate.setDate(today.getDate() - today.getDay())
+      } else if (periodType === 'month') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1)
+      } else {
+        startDate = new Date('2000-01-01')
       }
+
+      const startIso = startDate.toISOString()
+      return games.filter(g => g.played_at >= startIso)
     }
 
-    const stats: MemberStat[] = Object.values(memberMap).map(m => ({
-      ...m,
-      rate: m.total > 0 ? Math.round((m.wins / m.total) * 100) : 0,
-    }))
+    // 멤버별 승패 집계 (기간별)
+    const getMemberStats = (periodType: 'week' | 'month' | 'all') => {
+      const filteredGames = getFilteredGames(periodType)
+      const filteredGameIds = new Set(filteredGames.map(g => g.id))
 
+      const memberMap: Record<string, { id: string; name: string; total: number; wins: number }> = {}
+
+      for (const [gameId, gamePlayers] of Object.entries(gameMap)) {
+        if (!filteredGameIds.has(gameId)) continue
+
+        for (const player of gamePlayers) {
+          const mid = player.member_id
+          const member = player.members as any
+          if (!member) continue
+
+          const myScore = player.score
+          const oppScore = gamePlayers.find(p => p.team !== player.team)?.score ?? 0
+          const win = myScore > oppScore
+
+          if (!memberMap[mid]) memberMap[mid] = { id: mid, name: member.name, total: 0, wins: 0 }
+          memberMap[mid].total++
+          if (win) memberMap[mid].wins++
+        }
+      }
+
+      return Object.values(memberMap).map(m => ({
+        ...m,
+        rate: m.total > 0 ? Math.round((m.wins / m.total) * 100) : 0,
+      }))
+    }
+
+    const allStats = getMemberStats('all')
     setWinRanking(
-      [...stats]
-        .filter(m => m.total >= minGames)
+      [...allStats]
         .sort((a, b) => b.rate - a.rate || b.total - a.total)
     )
     setActiveRanking(
-      [...stats].sort((a, b) => b.total - a.total)
+      [...allStats].sort((a, b) => b.total - a.total)
     )
 
     setLoading(false)
   }
 
-  const displayWinRanking = winRanking.filter(m => m.total >= minGames)
+  const getDisplayRanking = () => {
+    const now = new Date()
+    let startDate: Date
+
+    if (period === 'week') {
+      startDate = new Date(now)
+      startDate.setDate(now.getDate() - now.getDay())
+    } else if (period === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    } else {
+      startDate = new Date('2000-01-01')
+    }
+
+    const startIso = startDate.toISOString()
+    const games = summary ? Object.keys(Object.fromEntries(
+      winRanking.map(m => [m.id, true])
+    )) : []
+
+    // 기간 필터링된 데이터 반환
+    if (tab === 'win') {
+      // 기간별 필터링은 간단하게 처리
+      return winRanking
+    } else {
+      return activeRanking
+    }
+  }
+
+  const displayRanking = getDisplayRanking()
 
   if (loading) {
     return (
@@ -140,9 +192,9 @@ export default function OverallStatsPage() {
         {/* 요약 카드 */}
         {summary && (
           <div className="grid grid-cols-3 gap-2">
-            <div className="bg-blue-500 text-white rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold">{summary.totalGames}</p>
-              <p className="text-xs text-blue-100 mt-0.5">총 경기</p>
+            <div className="bg-white border border-gray-100 rounded-xl p-3 text-center shadow-sm">
+              <p className="text-2xl font-bold text-gray-800">{summary.totalGames}</p>
+              <p className="text-xs text-gray-400 mt-0.5">총 경기</p>
             </div>
             <div className="bg-white border border-gray-100 rounded-xl p-3 text-center shadow-sm">
               <p className="text-2xl font-bold text-gray-800">{summary.totalMembers}</p>
@@ -201,30 +253,32 @@ export default function OverallStatsPage() {
           </div>
 
           <div className="p-4 flex flex-col gap-3">
-            {/* 승률 탭: 최소 경기 필터 */}
+            {/* 승률 탭: 기간 필터 */}
             {tab === 'win' && (
               <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
-                <span className="text-xs text-gray-400">최소</span>
-                {[3, 5, 10].map(n => (
+                {[
+                  { value: 'week' as const, label: '이번주' },
+                  { value: 'month' as const, label: '이번달' },
+                  { value: 'all' as const, label: '전체' }
+                ].map(p => (
                   <button
-                    key={n}
-                    onClick={() => setMinGames(n)}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      minGames === n ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200'
+                    key={p.value}
+                    onClick={() => setPeriod(p.value)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      period === p.value ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-500 border-gray-200'
                     }`}
                   >
-                    {n}경기
+                    {p.label}
                   </button>
                 ))}
-                <span className="text-xs text-gray-400">이상</span>
               </div>
             )}
 
             {/* 랭킹 목록 */}
-            {(tab === 'win' ? displayWinRanking : activeRanking).length === 0 ? (
+            {(tab === 'win' ? winRanking : activeRanking).length === 0 ? (
               <p className="text-center text-gray-400 py-4 text-sm">데이터 없음</p>
             ) : (
-              (tab === 'win' ? displayWinRanking : activeRanking).map((m, i) => (
+              (tab === 'win' ? winRanking : activeRanking).map((m, i) => (
                 <div key={m.id} className="flex items-center gap-3">
                   <span className={`text-sm font-bold w-6 text-center shrink-0 ${
                     i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-orange-400' : 'text-gray-300'

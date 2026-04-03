@@ -157,7 +157,7 @@ export default function RecordPage() {
       <div key={key} className="relative">
         <input
           type="text"
-          placeholder="검색..."
+          placeholder="검색(초성가능)"
           value={query}
           onFocus={() => setActiveSlot(key)}
           onBlur={() => setTimeout(() => setActiveSlot(prev => prev === key ? null : prev), 200)}

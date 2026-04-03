@@ -117,7 +117,7 @@ export default function RequestPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="이름 검색 또는 익명 선택..."
+                placeholder="검색(초성가능) 또는 익명 선택"
                 value={nameQuery}
                 onFocus={() => setNameOpen(true)}
                 onBlur={() => setTimeout(() => setNameOpen(false), 200)}

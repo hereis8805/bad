@@ -54,6 +54,17 @@ export default function AdminPage() {
 
       <div className="flex flex-col gap-3">
         <Link
+          href="/admin/games"
+          className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+        >
+          <div>
+            <p className="font-semibold text-gray-800">게임 관리</p>
+            <p className="text-xs text-gray-400 mt-0.5">게임 목록 · 삭제</p>
+          </div>
+          <span className="text-gray-400 text-lg">→</span>
+        </Link>
+
+        <Link
           href="/admin/members"
           className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
         >
