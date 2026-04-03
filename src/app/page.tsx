@@ -14,7 +14,7 @@ export default function Home() {
 
   useEffect(() => {
     supabase
-      .from('app_settings')
+      .from('settings')
       .select('key, value')
       .then(({ data }) => {
         const result: Settings = { show_overall_stats: true, show_personal_stats: true }

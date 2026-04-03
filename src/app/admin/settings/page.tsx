@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     supabase
-      .from('app_settings')
+      .from('settings')
       .select('key, value')
       .then(({ data }) => {
         if (data) {
@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
     setValues(prev => ({ ...prev, [key]: next }))
 
     await supabase
-      .from('app_settings')
+      .from('settings')
       .upsert({ key, value: String(next) }, { onConflict: 'key' })
 
     setSaving(null)
