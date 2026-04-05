@@ -275,65 +275,41 @@ export default function LivePage() {
 
     return (
       <div key={key} className="relative">
-        {isGuestInput ? (
-          <div className="flex gap-1">
-            <input
-              type="text"
-              autoFocus
-              placeholder="게스트 이름 입력"
-              value={guestName}
-              onChange={e => setGuestName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addGuestPlayer(team, index) }}
-              className="flex-1 border border-orange-300 rounded-lg px-2 py-2 text-sm outline-none focus:border-orange-400 bg-white"
-            />
+        <input
+          type="text"
+          placeholder="검색(초성가능)"
+          value={query}
+          onFocus={() => setActiveSlot(key)}
+          onBlur={() => setTimeout(() => setActiveSlot(prev => prev === key ? null : prev), 200)}
+          onChange={e => {
+            setSlotQueries(prev => ({ ...prev, [key]: e.target.value }))
+            setActiveSlot(key)
+          }}
+          className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm outline-none focus:border-blue-400 bg-white"
+        />
+        {isActive && (
+          <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto min-w-[160px] w-max max-w-[80vw]">
+            {getFilteredMembers(team, index).map(m => (
+              <button
+                key={m.id}
+                onMouseDown={() => selectMember(team, index, m)}
+                className="flex items-center gap-2 w-full px-3 py-2.5 text-left border-b border-gray-100 last:border-0 hover:bg-blue-50 active:bg-blue-100 whitespace-nowrap"
+              >
+                <span className="font-medium text-gray-800 text-sm">{m.name}</span>
+                <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'} · {m.birth_year}년생</span>
+              </button>
+            ))}
             <button
-              onMouseDown={() => addGuestPlayer(team, index)}
-              className="bg-orange-400 text-white px-2 py-1 rounded-lg text-xs font-semibold"
-            >추가</button>
-            <button
-              onMouseDown={() => { setGuestInputActive(null); setGuestName('') }}
-              className="text-gray-400 text-xs px-1"
-            >✕</button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="text"
-              placeholder="검색(초성가능)"
-              value={query}
-              onFocus={() => setActiveSlot(key)}
-              onBlur={() => setTimeout(() => setActiveSlot(prev => prev === key ? null : prev), 200)}
-              onChange={e => {
-                setSlotQueries(prev => ({ ...prev, [key]: e.target.value }))
-                setActiveSlot(key)
+              onMouseDown={() => {
+                setGuestInputActive(key)
+                setGuestName(query)
+                setActiveSlot(null)
               }}
-              className="w-full border border-gray-200 rounded-lg px-2 py-2 text-sm outline-none focus:border-blue-400 bg-white"
-            />
-            {isActive && (
-              <div className="absolute left-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto min-w-[160px] w-max max-w-[80vw]">
-                {getFilteredMembers(team, index).map(m => (
-                  <button
-                    key={m.id}
-                    onMouseDown={() => selectMember(team, index, m)}
-                    className="flex items-center gap-2 w-full px-3 py-2.5 text-left border-b border-gray-100 last:border-0 hover:bg-blue-50 active:bg-blue-100 whitespace-nowrap"
-                  >
-                    <span className="font-medium text-gray-800 text-sm">{m.name}</span>
-                    <span className="text-xs text-gray-400">{m.gender === 'M' ? '남' : '여'} · {m.birth_year}년생</span>
-                  </button>
-                ))}
-                <button
-                  onMouseDown={() => {
-                    setGuestInputActive(key)
-                    setGuestName(query)
-                    setActiveSlot(null)
-                  }}
-                  className="flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-orange-50 active:bg-orange-100 whitespace-nowrap border-t border-gray-100"
-                >
-                  <span className="text-orange-500 font-medium text-sm">+ 게스트 입력하기</span>
-                </button>
-              </div>
-            )}
-          </>
+              className="flex items-center gap-2 w-full px-3 py-2.5 text-left hover:bg-orange-50 active:bg-orange-100 whitespace-nowrap border-t border-gray-100"
+            >
+              <span className="text-orange-500 font-medium text-sm">+ 게스트 입력하기</span>
+            </button>
+          </div>
         )}
       </div>
     )
@@ -528,6 +504,42 @@ export default function LivePage() {
           </div>
         )}
       </div>
+
+      {/* 게스트 이름 입력 모달 */}
+      {guestInputActive && (
+        <div className="fixed inset-0 bg-black/50 flex items-end z-50" onClick={() => { setGuestInputActive(null); setGuestName('') }}>
+          <div className="bg-white w-full rounded-t-2xl p-6 flex flex-col gap-4" onClick={e => e.stopPropagation()}>
+            <h2 className="font-bold text-base text-gray-800">게스트 이름 입력</h2>
+            <input
+              type="text"
+              autoFocus
+              placeholder="이름을 입력하세요"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const [t, i] = guestInputActive.split('_').map(Number)
+                  addGuestPlayer(t as 1 | 2, i)
+                }
+              }}
+              className="w-full border border-orange-300 rounded-xl px-4 py-3 text-base outline-none focus:border-orange-400 bg-white"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setGuestInputActive(null); setGuestName('') }}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold"
+              >취소</button>
+              <button
+                onClick={() => {
+                  const [t, i] = guestInputActive.split('_').map(Number)
+                  addGuestPlayer(t as 1 | 2, i)
+                }}
+                className="flex-1 bg-orange-400 text-white py-3 rounded-xl font-semibold"
+              >추가</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 저장 확인 모달 (저장 버튼) */}
       {showEndConfirm && (
