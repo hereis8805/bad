@@ -16,7 +16,7 @@ export default function AdminPage() {
       setAuthed(true)
       setError(false)
       if (typeof window !== 'undefined') {
-        localStorage.setItem('admin_authed', 'true')
+        sessionStorage.setItem('admin_authed', 'true')
       }
     } else {
       setError(true)
@@ -26,7 +26,7 @@ export default function AdminPage() {
   useEffect(() => {
     // 페이지 로드 시 기존 인증 상태 복구
     if (typeof window !== 'undefined') {
-      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      const isAuthed = sessionStorage.getItem('admin_authed') === 'true'
       if (isAuthed) {
         setAuthed(true)
       }

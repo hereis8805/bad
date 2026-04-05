@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-key'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://jycjnmevudsbdiqqexty.supabase.co'
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp5Y2pubWV2dWRzYmRpcXFleHR5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMjcyNzIsImV4cCI6MjA5MDgwMzI3Mn0.8pBD-hM35XzqDLwbn8SZfqwY8UFM7mLXXxo4ptl0qpo'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
@@ -16,6 +16,7 @@ export interface Member {
   gender: Gender
   skill_level: SkillLevel
   birth_year: number
+  is_guest?: boolean
   created_at: string
 }
 

@@ -71,6 +71,21 @@ export default function Home() {
         >
           요청 · 건의
         </Link>
+
+        <div className="flex gap-3">
+          <Link
+            href="/live"
+            className="flex-1 bg-green-500 text-white text-center py-3 rounded-xl font-semibold shadow active:bg-green-600"
+          >
+            라이브 등록
+          </Link>
+          <Link
+            href="/live/watch"
+            className="flex-1 bg-indigo-500 text-white text-center py-3 rounded-xl font-semibold shadow active:bg-indigo-600"
+          >
+            라이브 보기
+          </Link>
+        </div>
       </div>
 
       <div className="mt-auto pt-8 text-center">

@@ -81,7 +81,7 @@ export default function StatsPage() {
     })
   }, [])
 
-  const filteredMembers = allMembers.filter(m => matchesSearch(m.name, query))
+  const filteredMembers = allMembers.filter(m => !m.is_guest && matchesSearch(m.name, query))
 
   async function selectMember(member: Member) {
     setSelected(member)
@@ -109,7 +109,7 @@ export default function StatsPage() {
     // 같은 게임에 참가한 모든 선수 조회
     const { data: allPlayers } = await supabase
       .from('game_players')
-      .select('game_id, member_id, team, score, members(id, name, gender, skill_level, birth_year, created_at)')
+      .select('game_id, member_id, team, score, members(id, name, gender, skill_level, birth_year, is_guest, created_at)')
       .in('game_id', gameIds)
 
     if (!allPlayers) return
@@ -155,22 +155,25 @@ export default function StatsPage() {
       //   if (win) byCourt[court].wins++
       // }
 
-      // 파트너 (같은팀, 다른 멤버) - 복식만
+      // 파트너 (같은팀, 다른 멤버) - 복식만, 게스트 제외
       const partners = players.filter((p: any) => p.team === myTeam && p.member_id !== member.id)
       for (const pt of partners) {
         const pm = pt.members as Member
-        if (!pm) continue
+        if (!pm || pm.is_guest) continue
         if (!partnerMap[pm.id]) partnerMap[pm.id] = { member: pm, together: 0, wins: 0 }
         partnerMap[pm.id].together++
         if (win) partnerMap[pm.id].wins++
       }
 
-      // 상대방
+      // 상대방 (게스트 제외)
       const opponents = players.filter((p: any) => p.team !== myTeam)
-      const oppNames = opponents.map((p: any) => (p.members as Member)?.name ?? '?')
+      const oppNames = opponents.map((p: any) => {
+        const m = p.members as Member
+        return m?.is_guest ? null : (m?.name ?? '?')
+      }).filter(Boolean) as string[]
       for (const op of opponents) {
         const om = op.members as Member
-        if (!om) continue
+        if (!om || om.is_guest) continue
         if (!opponentMap[om.id]) opponentMap[om.id] = { member: om, faced: 0, wins: 0 }
         opponentMap[om.id].faced++
         if (win) opponentMap[om.id].wins++

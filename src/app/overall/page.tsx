@@ -46,7 +46,7 @@ export default function OverallStatsPage() {
     // 게임 참여자 전체
     const { data: players } = await supabase
       .from('game_players')
-      .select('game_id, member_id, team, score, members(id, name)')
+      .select('game_id, member_id, team, score, members(id, name, is_guest)')
 
     if (!games || !players) { setLoading(false); return }
 
@@ -61,8 +61,8 @@ export default function OverallStatsPage() {
       if (g.played_at >= thisMonthStart) thisMonth++
     }
 
-    // 참여 멤버 수
-    const uniqueMembers = new Set(players.map(p => p.member_id))
+    // 참여 멤버 수 (게스트 제외)
+    const uniqueMembers = new Set(players.filter(p => !(p.members as any)?.is_guest).map(p => p.member_id))
 
     setSummary({
       totalGames: games.length,
@@ -109,7 +109,7 @@ export default function OverallStatsPage() {
         for (const player of gamePlayers) {
           const mid = player.member_id
           const member = player.members as any
-          if (!member) continue
+          if (!member || member.is_guest) continue
 
           const myScore = player.score
           const oppScore = gamePlayers.find(p => p.team !== player.team)?.score ?? 0

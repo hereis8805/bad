@@ -35,7 +35,7 @@ export default function MembersPage() {
   useEffect(() => {
     // 관리자 인증 확인
     if (typeof window !== 'undefined') {
-      const isAuthed = localStorage.getItem('admin_authed') === 'true'
+      const isAuthed = sessionStorage.getItem('admin_authed') === 'true'
       if (!isAuthed) {
         router.push('/admin')
         return
