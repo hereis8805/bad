@@ -109,6 +109,17 @@ export default function AdminPage() {
           </div>
           <span className="text-gray-400 text-lg">→</span>
         </Link>
+
+        <Link
+          href="/admin/live"
+          className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+        >
+          <div>
+            <p className="font-semibold text-gray-800">라이브 스코어 관리</p>
+            <p className="text-xs text-gray-400 mt-0.5">미종료 라이브 데이터 삭제</p>
+          </div>
+          <span className="text-gray-400 text-lg">→</span>
+        </Link>
       </div>
     </div>
   )
