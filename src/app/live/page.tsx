@@ -56,6 +56,8 @@ export default function LivePage() {
   const [ending, setEnding] = useState(false)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [showBackModal, setShowBackModal] = useState(false)
+  const [showGuestAlert, setShowGuestAlert] = useState(false)
+  const [showQuitConfirm, setShowQuitConfirm] = useState(false)
   const [isLandscape, setIsLandscape] = useState(false)
 
   const [liveDbId, setLiveDbId] = useState<string | null>(null)
@@ -187,7 +189,7 @@ export default function LivePage() {
       ])
 
       await supabase.from('live_games').delete().eq('id', liveDbId)
-      router.push('/games')
+      router.push('/')
     } catch {
       setEnding(false)
     }
@@ -464,8 +466,11 @@ export default function LivePage() {
             {/* 버튼 */}
             <div className="flex gap-2">
               <button onClick={undoLast} disabled={history.length === 0} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold text-sm disabled:opacity-30 active:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
-              <button onClick={handleEndWithoutSave} className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-gray-600">종료</button>
-              <button onClick={() => setShowEndConfirm(true)} className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-blue-600">저장</button>
+              <button onClick={() => setShowQuitConfirm(true)} className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-gray-600">종료</button>
+              <button onClick={() => {
+                const allPlayers = [...team1.filter(Boolean), ...team2.filter(Boolean)] as LivePlayer[]
+                if (allPlayers.some(p => p.isGuest)) { setShowGuestAlert(true) } else { setShowEndConfirm(true) }
+              }} className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-blue-600">저장</button>
             </div>
           </div>
         )}
@@ -514,8 +519,11 @@ export default function LivePage() {
                 ) : <span className="text-xs text-gray-300">탭하면 득점</span>}
               </div>
               <button onClick={undoLast} disabled={history.length === 0} className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl font-semibold text-xs disabled:opacity-30 active:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
-              <button onClick={handleEndWithoutSave} className="bg-gray-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-gray-600">종료</button>
-              <button onClick={() => setShowEndConfirm(true)} className="bg-blue-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-blue-600">저장</button>
+              <button onClick={() => setShowQuitConfirm(true)} className="bg-gray-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-gray-600">종료</button>
+              <button onClick={() => {
+                const allPlayers = [...team1.filter(Boolean), ...team2.filter(Boolean)] as LivePlayer[]
+                if (allPlayers.some(p => p.isGuest)) { setShowGuestAlert(true) } else { setShowEndConfirm(true) }
+              }} className="bg-blue-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-blue-600">저장</button>
             </div>
           </div>
         )}
@@ -586,6 +594,55 @@ export default function LivePage() {
                 뒤로가기
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 종료 확인 모달 */}
+      {showQuitConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowQuitConfirm(false)}>
+          <div className="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm flex flex-col gap-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="text-4xl mb-3">🏸</div>
+              <h2 className="font-bold text-lg text-gray-800">종료하시겠습니까?</h2>
+              <p className="text-sm text-gray-500 mt-1">저장하지 않고 종료됩니다.</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowQuitConfirm(false)}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold"
+              >
+                계속하기
+              </button>
+              <button
+                onClick={() => { setShowQuitConfirm(false); handleEndWithoutSave() }}
+                className="flex-1 bg-red-400 text-white py-3 rounded-xl font-semibold"
+              >
+                종료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 게스트 포함 저장 불가 알림 */}
+      {showGuestAlert && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowGuestAlert(false)}>
+          <div className="bg-white rounded-2xl p-6 mx-4 w-full max-w-sm flex flex-col gap-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center">
+              <div className="text-4xl mb-3">⚠️</div>
+              <h2 className="font-bold text-lg text-gray-800">저장 불가</h2>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                게스트가 포함된 경기는<br />저장할 수 없습니다.<br />
+                저장 없이 종료해주세요.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowGuestAlert(false)}
+              className="w-full bg-blue-500 text-white py-3 rounded-xl font-semibold"
+            >
+              확인
+            </button>
           </div>
         </div>
       )}

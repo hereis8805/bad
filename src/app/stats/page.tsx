@@ -64,7 +64,6 @@ type Stats = {
 const GAME_TYPE_LABEL: Record<string, string> = {
   singles: '단식',
   doubles: '복식',
-  half_singles: '반코트',
 }
 
 export default function StatsPage() {
@@ -93,10 +92,10 @@ export default function StatsPage() {
   }
 
   async function loadStats(member: Member) {
-    // 이 회원이 참가한 모든 game_id 조회
+    // 이 회원이 참가한 game_id 조회
     const { data: myRows } = await supabase
       .from('game_players')
-      .select('game_id, team, score, games(game_type, court)')
+      .select('game_id, team, score')
       .eq('member_id', member.id)
 
     if (!myRows || myRows.length === 0) {
@@ -106,13 +105,32 @@ export default function StatsPage() {
 
     const gameIds = myRows.map((r: any) => r.game_id)
 
-    // 같은 게임에 참가한 모든 선수 조회
+    // 게임 정보 별도 조회
+    const { data: gamesData } = await supabase
+      .from('games')
+      .select('id, game_type, court')
+      .in('id', gameIds)
+
+    const gameInfoLookup: Record<string, { game_type: string; court: string }> =
+      Object.fromEntries((gamesData ?? []).map((g: any) => [g.id, g]))
+
+    // 같은 게임 참여 선수 조회 (조인 없이)
     const { data: allPlayers } = await supabase
       .from('game_players')
-      .select('game_id, member_id, team, score, members(id, name, gender, skill_level, birth_year, is_guest, created_at)')
+      .select('game_id, member_id, team, score')
       .in('game_id', gameIds)
 
     if (!allPlayers) return
+
+    // 참여 선수 member_id 수집 후 회원 정보 별도 조회
+    const memberIds = [...new Set(allPlayers.map((p: any) => p.member_id))]
+    const { data: membersData } = await supabase
+      .from('members')
+      .select('*')
+      .in('id', memberIds)
+
+    const memberLookup: Record<string, Member> =
+      Object.fromEntries((membersData ?? []).map((m: any) => [m.id, m]))
 
     // 게임별 그룹핑
     const gameMap: Record<string, any[]> = {}
@@ -132,9 +150,9 @@ export default function StatsPage() {
       const gameId = myRow.game_id
       const myTeam = myRow.team
       const myScore = myRow.score
-      const gameInfo = Array.isArray(myRow.games) ? myRow.games[0] : myRow.games
-      const gameType = gameInfo?.game_type ?? ''
-      const court = gameInfo?.court ?? ''
+      const gameInfo = gameInfoLookup[gameId]
+      const rawType = gameInfo?.game_type ?? ''
+      const gameType = rawType === 'half_singles' ? 'singles' : rawType
       const players = gameMap[gameId] ?? []
 
       // 상대팀 점수
@@ -144,21 +162,16 @@ export default function StatsPage() {
       if (win) wins++; else losses++
 
       // 게임타입별
-      if (!byType[gameType]) byType[gameType] = { total: 0, wins: 0 }
-      byType[gameType].total++
-      if (win) byType[gameType].wins++
-
-      // // 코트별
-      // if (court) {
-      //   if (!byCourt[court]) byCourt[court] = { total: 0, wins: 0 }
-      //   byCourt[court].total++
-      //   if (win) byCourt[court].wins++
-      // }
+      if (gameType) {
+        if (!byType[gameType]) byType[gameType] = { total: 0, wins: 0 }
+        byType[gameType].total++
+        if (win) byType[gameType].wins++
+      }
 
       // 파트너 (같은팀, 다른 멤버) - 복식만, 게스트 제외
       const partners = players.filter((p: any) => p.team === myTeam && p.member_id !== member.id)
       for (const pt of partners) {
-        const pm = pt.members as Member
+        const pm = memberLookup[pt.member_id]
         if (!pm || pm.is_guest) continue
         if (!partnerMap[pm.id]) partnerMap[pm.id] = { member: pm, together: 0, wins: 0 }
         partnerMap[pm.id].together++
@@ -168,11 +181,11 @@ export default function StatsPage() {
       // 상대방 (게스트 제외)
       const opponents = players.filter((p: any) => p.team !== myTeam)
       const oppNames = opponents.map((p: any) => {
-        const m = p.members as Member
-        return m?.is_guest ? null : (m?.name ?? '?')
+        const m = memberLookup[p.member_id]
+        return m?.is_guest ? null : (m?.name ?? null)
       }).filter(Boolean) as string[]
       for (const op of opponents) {
-        const om = op.members as Member
+        const om = memberLookup[op.member_id]
         if (!om || om.is_guest) continue
         if (!opponentMap[om.id]) opponentMap[om.id] = { member: om, faced: 0, wins: 0 }
         opponentMap[om.id].faced++

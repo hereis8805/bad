@@ -112,7 +112,6 @@ export default function LiveWatchPage() {
                     {game.team1.map((p, i) => (
                       <div key={i} className="text-center">
                         <p className="font-bold text-gray-800">{p.name}</p>
-                        {p.isGuest && <span className="text-xs text-orange-400">게스트</span>}
                       </div>
                     ))}
                     <span className={`text-6xl font-black tabular-nums mt-2 ${game.score1 > game.score2 ? 'text-blue-500' : 'text-gray-700'}`}>
@@ -133,7 +132,6 @@ export default function LiveWatchPage() {
                     {game.team2.map((p, i) => (
                       <div key={i} className="text-center">
                         <p className="font-bold text-gray-800">{p.name}</p>
-                        {p.isGuest && <span className="text-xs text-orange-400">게스트</span>}
                       </div>
                     ))}
                     <span className={`text-6xl font-black tabular-nums mt-2 ${game.score2 > game.score1 ? 'text-red-400' : 'text-gray-700'}`}>

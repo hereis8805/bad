@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase, type Member } from '@/lib/supabase'
 
-const CATEGORIES = ['규칙 제안', '앱 기능', '시설·장비', '경기 관련', '기타']
+const CATEGORIES = ['규칙 제안', '앱 기능', '시설·장비', '기록 수정', '기타']
 
 const CHOSUNG = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ']
 

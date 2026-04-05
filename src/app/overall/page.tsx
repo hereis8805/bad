@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase'
 const GAME_TYPE_LABEL: Record<string, string> = {
   singles: '단식',
   doubles: '복식',
-  half_singles: '반코트',
 }
 
 type MemberStat = {
@@ -43,12 +42,20 @@ export default function OverallStatsPage() {
       .from('games')
       .select('id, game_type, played_at')
 
-    // 게임 참여자 전체
+    // 게임 참여자 전체 (조인 없이)
     const { data: players } = await supabase
       .from('game_players')
-      .select('game_id, member_id, team, score, members(id, name, is_guest)')
+      .select('game_id, member_id, team, score')
 
-    if (!games || !players) { setLoading(false); return }
+    // 회원 정보 별도 조회
+    const { data: membersData } = await supabase
+      .from('members')
+      .select('*')
+
+    if (!games || !players || !membersData) { setLoading(false); return }
+
+    const memberLookup: Record<string, { id: string; name: string; is_guest?: boolean }> =
+      Object.fromEntries(membersData.map((m: any) => [m.id, m]))
 
     const now = new Date()
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
@@ -57,12 +64,15 @@ export default function OverallStatsPage() {
     const byType: Record<string, number> = {}
     let thisMonth = 0
     for (const g of games) {
-      byType[g.game_type] = (byType[g.game_type] ?? 0) + 1
+      const t = g.game_type === 'half_singles' ? 'singles' : g.game_type
+      byType[t] = (byType[t] ?? 0) + 1
       if (g.played_at >= thisMonthStart) thisMonth++
     }
 
     // 참여 멤버 수 (게스트 제외)
-    const uniqueMembers = new Set(players.filter(p => !(p.members as any)?.is_guest).map(p => p.member_id))
+    const uniqueMembers = new Set(
+      players.filter(p => !memberLookup[p.member_id]?.is_guest).map(p => p.member_id)
+    )
 
     setSummary({
       totalGames: games.length,
@@ -96,7 +106,7 @@ export default function OverallStatsPage() {
       return games.filter(g => g.played_at >= startIso)
     }
 
-    // 멤버별 승패 집계 (기간별)
+    // 멤버별 승패 집계
     const getMemberStats = (periodType: 'week' | 'month' | 'all') => {
       const filteredGames = getFilteredGames(periodType)
       const filteredGameIds = new Set(filteredGames.map(g => g.id))
@@ -108,7 +118,7 @@ export default function OverallStatsPage() {
 
         for (const player of gamePlayers) {
           const mid = player.member_id
-          const member = player.members as any
+          const member = memberLookup[mid]
           if (!member || member.is_guest) continue
 
           const myScore = player.score
@@ -128,13 +138,8 @@ export default function OverallStatsPage() {
     }
 
     const allStats = getMemberStats('all')
-    setWinRanking(
-      [...allStats]
-        .sort((a, b) => b.rate - a.rate || b.total - a.total)
-    )
-    setActiveRanking(
-      [...allStats].sort((a, b) => b.total - a.total)
-    )
+    setWinRanking([...allStats].sort((a, b) => b.rate - a.rate || b.total - a.total))
+    setActiveRanking([...allStats].sort((a, b) => b.total - a.total))
 
     setLoading(false)
   }

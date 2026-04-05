@@ -30,7 +30,7 @@ export default function Home() {
     <main className="flex flex-col min-h-screen">
 
       {/* 헤더 */}
-      <div className="bg-blue-500 px-5 pt-12 pb-8">
+      <div className="bg-blue-500 px-5 pt-12 pb-8 text-center">
         <p className="text-blue-100 text-xs font-semibold tracking-widest uppercase">Badminton Club</p>
         <h1 className="text-white text-2xl font-bold mt-1.5">슬기로운 내정 생활 🏸</h1>
         <p className="text-blue-200 text-sm mt-1">경기 기록 & 통계</p>
