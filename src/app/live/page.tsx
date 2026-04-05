@@ -196,7 +196,7 @@ export default function LivePage() {
   async function handleEndWithoutSave() {
     if (!liveDbId) return
     await supabase.from('live_games').delete().eq('id', liveDbId)
-    router.push('/games')
+    router.push('/')
   }
 
   // --- 선수 슬롯 ---
@@ -463,22 +463,29 @@ export default function LivePage() {
             </div>
             {/* 버튼 */}
             <div className="flex gap-2">
-              <button onClick={undoLast} disabled={history.length === 0} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold text-sm disabled:opacity-30 active:bg-gray-200">되돌리기</button>
+              <button onClick={undoLast} disabled={history.length === 0} className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-semibold text-sm disabled:opacity-30 active:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               <button onClick={handleEndWithoutSave} className="flex-1 bg-gray-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-gray-600">종료</button>
               <button onClick={() => setShowEndConfirm(true)} className="flex-1 bg-blue-500 text-white py-3 rounded-xl font-semibold text-sm active:bg-blue-600">저장</button>
             </div>
           </div>
         )}
 
-        {/* LANDSCAPE: portrait와 동일한 CSS, 좌우 반반 */}
+        {/* LANDSCAPE: fixed 풀스크린 (max-w-md 제약 탈출) */}
         {step === 'game' && isLandscape && (
-          <div className="flex flex-col flex-1">
-            <div className="flex flex-1">
+          <div className="fixed inset-0 bg-white flex flex-col z-40">
+            {/* 미니 헤더 */}
+            <div className="flex items-center gap-3 px-3 py-1.5 border-b border-gray-100 bg-white">
+              <button onClick={() => setShowBackModal(true)} className="text-gray-500 text-xl">←</button>
+              <h1 className="font-bold text-sm flex-1">라이브 스코어</h1>
+              <span className="text-xs text-green-500 font-semibold animate-pulse">● LIVE</span>
+            </div>
+            {/* 점수 영역 */}
+            <div className="flex flex-1 gap-2 p-2">
               <button
                 onClick={() => addPoint(1)}
-                className={`flex-1 flex flex-col items-center justify-center bg-blue-50 active:bg-blue-100 active:scale-95 transition-transform select-none border-r-2 ${score1 >= score2 ? 'border-blue-400' : 'border-blue-100'}`}
+                className={`flex-1 flex flex-col items-center justify-center rounded-2xl bg-blue-50 border-2 active:bg-blue-100 active:scale-95 transition-transform select-none ${score1 >= score2 ? 'border-blue-400' : 'border-blue-100'}`}
               >
-                <span className={`font-black tabular-nums leading-none ${score1 >= score2 ? 'text-blue-500' : 'text-blue-300'}`} style={{ fontSize: 'min(40vw, 52vh)' }}>{score1}</span>
+                <span className={`font-black tabular-nums leading-none ${score1 >= score2 ? 'text-blue-500' : 'text-blue-300'}`} style={{ fontSize: 'min(38vw, 50vh)' }}>{score1}</span>
                 <div className="mt-1 flex flex-col items-center gap-0.5">
                   {(team1.filter(Boolean) as LivePlayer[]).map((p, i) => (
                     <span key={i} className="text-sm text-blue-400 font-semibold">{p.name}{p.isGuest && <span className="text-orange-400 text-xs ml-1">(게스트)</span>}</span>
@@ -487,9 +494,9 @@ export default function LivePage() {
               </button>
               <button
                 onClick={() => addPoint(2)}
-                className={`flex-1 flex flex-col items-center justify-center bg-red-50 active:bg-red-100 active:scale-95 transition-transform select-none border-l-2 ${score2 >= score1 ? 'border-red-400' : 'border-red-100'}`}
+                className={`flex-1 flex flex-col items-center justify-center rounded-2xl bg-red-50 border-2 active:bg-red-100 active:scale-95 transition-transform select-none ${score2 >= score1 ? 'border-red-400' : 'border-red-100'}`}
               >
-                <span className={`font-black tabular-nums leading-none ${score2 >= score1 ? 'text-red-500' : 'text-red-300'}`} style={{ fontSize: 'min(40vw, 52vh)' }}>{score2}</span>
+                <span className={`font-black tabular-nums leading-none ${score2 >= score1 ? 'text-red-500' : 'text-red-300'}`} style={{ fontSize: 'min(38vw, 50vh)' }}>{score2}</span>
                 <div className="mt-1 flex flex-col items-center gap-0.5">
                   {(team2.filter(Boolean) as LivePlayer[]).map((p, i) => (
                     <span key={i} className="text-sm text-red-400 font-semibold">{p.name}{p.isGuest && <span className="text-orange-400 text-xs ml-1">(게스트)</span>}</span>
@@ -498,7 +505,7 @@ export default function LivePage() {
               </button>
             </div>
             {/* 하단 바 */}
-            <div className="flex items-center gap-2 px-2 py-1.5 border-t border-gray-100">
+            <div className="flex items-center gap-2 px-2 py-1.5 border-t border-gray-100 bg-white">
               <div className="flex-1 text-center">
                 {streak && streak.count >= 2 ? (
                   <span className={`text-xs font-bold ${streak.team === 1 ? 'text-blue-500' : 'text-red-500'}`}>🔥 {streakNames} {streak.count}연속!</span>
@@ -506,7 +513,7 @@ export default function LivePage() {
                   <span className="text-xs text-gray-400">마지막: <span className={history[history.length - 1] === 1 ? 'text-blue-500 font-semibold' : 'text-red-500 font-semibold'}>{(history[history.length - 1] === 1 ? team1 : team2).filter(Boolean).map(p => (p as LivePlayer).name).join(', ')}</span></span>
                 ) : <span className="text-xs text-gray-300">탭하면 득점</span>}
               </div>
-              <button onClick={undoLast} disabled={history.length === 0} className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl font-semibold text-xs disabled:opacity-30 active:bg-gray-200">되돌리기</button>
+              <button onClick={undoLast} disabled={history.length === 0} className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl font-semibold text-xs disabled:opacity-30 active:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
               <button onClick={handleEndWithoutSave} className="bg-gray-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-gray-600">종료</button>
               <button onClick={() => setShowEndConfirm(true)} className="bg-blue-500 text-white px-3 py-2 rounded-xl font-semibold text-xs active:bg-blue-600">저장</button>
             </div>
