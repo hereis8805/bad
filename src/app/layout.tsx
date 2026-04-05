@@ -21,8 +21,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const theme = process.env.NEXT_PUBLIC_THEME ?? '1'
+
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko" className="h-full" data-theme={theme}>
       <body className="min-h-full bg-gray-50 flex flex-col">
         <div className="max-w-md mx-auto w-full flex-1 flex flex-col">
           {children}

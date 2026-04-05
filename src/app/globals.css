@@ -8,5 +8,80 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
+
+/* =============================================
+   THEME 2 — Emerald (에메랄드)
+   50=#ecfdf5  100=#d1fae5  200=#a7f3d0
+   300=#6ee7b7 400=#34d399  500=#10b981  600=#059669
+   ============================================= */
+
+html[data-theme="2"] .bg-blue-50  { background-color: #ecfdf5; }
+html[data-theme="2"] .bg-blue-100 { background-color: #d1fae5; }
+html[data-theme="2"] .bg-blue-200 { background-color: #a7f3d0; }
+html[data-theme="2"] .bg-blue-400 { background-color: #34d399; }
+html[data-theme="2"] .bg-blue-500 { background-color: #10b981; }
+html[data-theme="2"] .bg-blue-600 { background-color: #059669; }
+
+html[data-theme="2"] .text-blue-100 { color: #d1fae5; }
+html[data-theme="2"] .text-blue-300 { color: #6ee7b7; }
+html[data-theme="2"] .text-blue-400 { color: #34d399; }
+html[data-theme="2"] .text-blue-500 { color: #10b981; }
+html[data-theme="2"] .text-blue-600 { color: #059669; }
+
+html[data-theme="2"] .border-blue-100 { border-color: #d1fae5; }
+html[data-theme="2"] .border-blue-200 { border-color: #a7f3d0; }
+html[data-theme="2"] .border-blue-300 { border-color: #6ee7b7; }
+html[data-theme="2"] .border-blue-400 { border-color: #34d399; }
+html[data-theme="2"] .border-blue-500 { border-color: #10b981; }
+
+html[data-theme="2"] .bg-indigo-500 { background-color: #059669; }
+html[data-theme="2"] .bg-indigo-600 { background-color: #047857; }
+
+html[data-theme="2"] .hover\:bg-blue-50:hover   { background-color: #ecfdf5; }
+html[data-theme="2"] .hover\:bg-blue-100:hover  { background-color: #d1fae5; }
+html[data-theme="2"] .active\:bg-blue-50:active  { background-color: #ecfdf5; }
+html[data-theme="2"] .active\:bg-blue-100:active { background-color: #d1fae5; }
+html[data-theme="2"] .active\:bg-blue-600:active { background-color: #059669; }
+html[data-theme="2"] .active\:border-blue-300:active { border-color: #6ee7b7; }
+html[data-theme="2"] .active\:bg-indigo-600:active   { background-color: #047857; }
+html[data-theme="2"] .focus\:border-blue-400:focus   { border-color: #34d399; }
+
+/* =============================================
+   THEME 3 — Violet (바이올렛)
+   50=#f5f3ff  100=#ede9fe  200=#ddd6fe
+   300=#c4b5fd 400=#a78bfa  500=#8b5cf6  600=#7c3aed
+   ============================================= */
+
+html[data-theme="3"] .bg-blue-50  { background-color: #f5f3ff; }
+html[data-theme="3"] .bg-blue-100 { background-color: #ede9fe; }
+html[data-theme="3"] .bg-blue-200 { background-color: #ddd6fe; }
+html[data-theme="3"] .bg-blue-400 { background-color: #a78bfa; }
+html[data-theme="3"] .bg-blue-500 { background-color: #8b5cf6; }
+html[data-theme="3"] .bg-blue-600 { background-color: #7c3aed; }
+
+html[data-theme="3"] .text-blue-100 { color: #ede9fe; }
+html[data-theme="3"] .text-blue-300 { color: #c4b5fd; }
+html[data-theme="3"] .text-blue-400 { color: #a78bfa; }
+html[data-theme="3"] .text-blue-500 { color: #8b5cf6; }
+html[data-theme="3"] .text-blue-600 { color: #7c3aed; }
+
+html[data-theme="3"] .border-blue-100 { border-color: #ede9fe; }
+html[data-theme="3"] .border-blue-200 { border-color: #ddd6fe; }
+html[data-theme="3"] .border-blue-300 { border-color: #c4b5fd; }
+html[data-theme="3"] .border-blue-400 { border-color: #a78bfa; }
+html[data-theme="3"] .border-blue-500 { border-color: #8b5cf6; }
+
+html[data-theme="3"] .bg-indigo-500 { background-color: #7c3aed; }
+html[data-theme="3"] .bg-indigo-600 { background-color: #6d28d9; }
+
+html[data-theme="3"] .hover\:bg-blue-50:hover   { background-color: #f5f3ff; }
+html[data-theme="3"] .hover\:bg-blue-100:hover  { background-color: #ede9fe; }
+html[data-theme="3"] .active\:bg-blue-50:active  { background-color: #f5f3ff; }
+html[data-theme="3"] .active\:bg-blue-100:active { background-color: #ede9fe; }
+html[data-theme="3"] .active\:bg-blue-600:active { background-color: #7c3aed; }
+html[data-theme="3"] .active\:border-blue-300:active { border-color: #c4b5fd; }
+html[data-theme="3"] .active\:bg-indigo-600:active   { background-color: #6d28d9; }
+html[data-theme="3"] .focus\:border-blue-400:focus   { border-color: #a78bfa; }
