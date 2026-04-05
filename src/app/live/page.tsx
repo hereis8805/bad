@@ -458,7 +458,7 @@ export default function LivePage() {
               {streak && streak.count >= 2 ? (
                 <span className={`text-sm font-bold ${streak.team === 1 ? 'text-blue-500' : 'text-red-500'}`}>🔥 {streakNames} {streak.count}연속 득점!</span>
               ) : history.length > 0 ? (
-                <span className="text-xs text-gray-400">마지막 득점: <span className={history[history.length - 1] === 1 ? 'text-blue-500 font-semibold' : 'text-red-500 font-semibold'}>{(history[history.length - 1] === 1 ? team1 : team2).filter(Boolean).map(p => (p as LivePlayer).name).join(', ')}</span></span>
+                <span className={`text-xs font-semibold ${history[history.length - 1] === 1 ? 'text-blue-500' : 'text-red-500'}`}>{(history[history.length - 1] === 1 ? team1 : team2).filter(Boolean).map(p => (p as LivePlayer).name).join(', ')} 득점!</span>
               ) : null}
             </div>
             {/* 버튼 */}
@@ -510,7 +510,7 @@ export default function LivePage() {
                 {streak && streak.count >= 2 ? (
                   <span className={`text-xs font-bold ${streak.team === 1 ? 'text-blue-500' : 'text-red-500'}`}>🔥 {streakNames} {streak.count}연속!</span>
                 ) : history.length > 0 ? (
-                  <span className="text-xs text-gray-400">마지막: <span className={history[history.length - 1] === 1 ? 'text-blue-500 font-semibold' : 'text-red-500 font-semibold'}>{(history[history.length - 1] === 1 ? team1 : team2).filter(Boolean).map(p => (p as LivePlayer).name).join(', ')}</span></span>
+                  <span className={`text-xs font-semibold ${history[history.length - 1] === 1 ? 'text-blue-500' : 'text-red-500'}`}>{(history[history.length - 1] === 1 ? team1 : team2).filter(Boolean).map(p => (p as LivePlayer).name).join(', ')} 득점!</span>
                 ) : <span className="text-xs text-gray-300">탭하면 득점</span>}
               </div>
               <button onClick={undoLast} disabled={history.length === 0} className="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl font-semibold text-xs disabled:opacity-30 active:bg-gray-200"><svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg></button>
