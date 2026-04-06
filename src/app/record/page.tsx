@@ -267,7 +267,7 @@ export default function RecordPage() {
             {playersReady && (
               <button
                 onClick={() => setStep('score')}
-                className="mt-auto bg-blue-500 text-white py-3 rounded-xl font-semibold text-base"
+                className="bg-blue-500 text-white py-3 rounded-xl font-semibold text-base"
               >
                 다음 → 점수 입력
               </button>
@@ -315,7 +315,7 @@ export default function RecordPage() {
             <button
               onClick={handleSubmit}
               disabled={!score1 || !score2 || submitting}
-              className="mt-auto bg-blue-500 text-white py-3 rounded-xl font-semibold text-base disabled:opacity-50"
+              className="bg-blue-500 text-white py-3 rounded-xl font-semibold text-base disabled:opacity-50"
             >
               {submitting ? '저장 중...' : '저장하기'}
             </button>
