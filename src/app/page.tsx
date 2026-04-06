@@ -10,7 +10,7 @@ type Settings = {
 }
 
 export default function Home() {
-  const [settings, setSettings] = useState<Settings | null>(null)
+  const [settings, setSettings] = useState<Settings>({ show_overall_stats: true, show_personal_stats: true })
 
   useEffect(() => {
     supabase
@@ -65,7 +65,7 @@ export default function Home() {
           <span className="text-gray-300 text-xl">›</span>
         </Link>
 
-        {settings?.show_personal_stats && (
+        {settings.show_personal_stats && (
           <Link
             href="/stats"
             className="bg-white rounded-2xl p-4 flex items-center gap-3.5 shadow-sm border border-gray-100 active:bg-gray-50"
@@ -79,7 +79,7 @@ export default function Home() {
           </Link>
         )}
 
-        {settings?.show_overall_stats && (
+        {settings.show_overall_stats && (
           <Link
             href="/overall"
             className="bg-white rounded-2xl p-4 flex items-center gap-3.5 shadow-sm border border-gray-100 active:bg-gray-50"
