@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
@@ -17,8 +17,71 @@ type LiveGame = {
   team2: LivePlayer[]
   score1: number
   score2: number
+  history?: (1 | 2)[]
   is_active: boolean
   updated_at: string
+}
+
+function getRuns(history: (1 | 2)[]): { team: 1 | 2; count: number }[] {
+  const runs: { team: 1 | 2; count: number }[] = []
+  for (const team of history) {
+    if (runs.length === 0 || runs[runs.length - 1].team !== team) {
+      runs.push({ team, count: 1 })
+    } else {
+      runs[runs.length - 1].count++
+    }
+  }
+  return runs
+}
+
+function TimelineScroller({ history }: { history: (1 | 2)[] }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const runs = getRuns(history)
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [history.length])
+
+  return (
+    <div ref={scrollRef} className="mt-4 overflow-x-auto scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
+      <div className="flex flex-col min-w-max px-1">
+        {/* 팀2 (빨강) 상단 */}
+        <div className="flex gap-1 items-end pb-1.5 min-h-4">
+          {runs.map((run, ri) => (
+            <div key={ri} className="flex gap-0.5 shrink-0">
+              {run.team === 2
+                ? Array.from({ length: run.count }).map((_, j) => (
+                    <span key={j} className="w-2 h-2 rounded-full bg-red-400" />
+                  ))
+                : Array.from({ length: run.count }).map((_, j) => (
+                    <span key={j} className="w-2 h-2 opacity-0" />
+                  ))
+              }
+            </div>
+          ))}
+        </div>
+        {/* 구분선 */}
+        <div className="h-px bg-gray-300" />
+        {/* 팀1 (파랑) 하단 */}
+        <div className="flex gap-1 items-start pt-1.5 min-h-4">
+          {runs.map((run, ri) => (
+            <div key={ri} className="flex gap-0.5 shrink-0">
+              {run.team === 1
+                ? Array.from({ length: run.count }).map((_, j) => (
+                    <span key={j} className="w-2 h-2 rounded-full bg-blue-500" />
+                  ))
+                : Array.from({ length: run.count }).map((_, j) => (
+                    <span key={j} className="w-2 h-2 opacity-0" />
+                  ))
+              }
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const GAME_TYPE_LABEL: Record<string, string> = {
@@ -109,17 +172,17 @@ export default function LiveWatchPage() {
 
                 <div className="flex items-stretch gap-4">
                   <div className="flex-1 flex flex-col items-center gap-2">
-                    {game.team1.map((p, i) => (
-                      <div key={i} className="text-center">
-                        <p className="font-bold text-gray-800">{p.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                      <div className="flex flex-col">
+                        {game.team1.map((p, i) => (
+                          <p key={i} className="font-bold text-gray-800 leading-tight">{p.name}</p>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                     <span className={`text-6xl font-black tabular-nums mt-2 ${game.score1 > game.score2 ? 'text-blue-500' : 'text-gray-700'}`}>
                       {game.score1}
                     </span>
-                    {game.score1 > game.score2 && (
-                      <span className="text-xs text-blue-400 font-semibold">리드</span>
-                    )}
                   </div>
 
                   <div className="flex flex-col items-center justify-center">
@@ -129,22 +192,27 @@ export default function LiveWatchPage() {
                   </div>
 
                   <div className="flex-1 flex flex-col items-center gap-2">
-                    {game.team2.map((p, i) => (
-                      <div key={i} className="text-center">
-                        <p className="font-bold text-gray-800">{p.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0" />
+                      <div className="flex flex-col">
+                        {game.team2.map((p, i) => (
+                          <p key={i} className="font-bold text-gray-800 leading-tight">{p.name}</p>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                     <span className={`text-6xl font-black tabular-nums mt-2 ${game.score2 > game.score1 ? 'text-red-400' : 'text-gray-700'}`}>
                       {game.score2}
                     </span>
-                    {game.score2 > game.score1 && (
-                      <span className="text-xs text-red-400 font-semibold">리드</span>
-                    )}
                   </div>
                 </div>
 
                 {game.score1 === game.score2 && (game.score1 > 0 || game.score2 > 0) && (
                   <p className="text-center text-sm text-gray-500 font-semibold mt-3">듀스</p>
+                )}
+
+                {/* 득점 순서 타임라인 */}
+                {game.history && game.history.length > 0 && (
+                  <TimelineScroller history={game.history} />
                 )}
               </div>
             ))}

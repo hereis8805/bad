@@ -94,24 +94,30 @@ export default function LivePage() {
     }
   }, [liveDbId])
 
-  function broadcastScore(s1: number, s2: number) {
+  function broadcastScore(s1: number, s2: number, hist: (1 | 2)[]) {
     const id = liveDbIdRef.current
     if (!id) return
     const t1 = team1.filter(Boolean) as LivePlayer[]
     const t2 = team2.filter(Boolean) as LivePlayer[]
-    channelRef.current?.send({ type: 'broadcast', event: 'score_update', payload: { score1: s1, score2: s2, team1: t1, team2: t2 } })
-    supabase.from('live_games').update({ score1: s1, score2: s2, updated_at: new Date().toISOString() }).eq('id', id).then()
+    channelRef.current?.send({ type: 'broadcast', event: 'score_update', payload: { score1: s1, score2: s2, team1: t1, team2: t2, history: hist } })
+    supabase.from('live_games').update({ score1: s1, score2: s2, history: hist, updated_at: new Date().toISOString() }).eq('id', id).then()
   }
 
+  const [startError, setStartError] = useState('')
+
   async function startGame() {
+    setStartError('')
     const t1 = team1.filter(Boolean) as LivePlayer[]
     const t2 = team2.filter(Boolean) as LivePlayer[]
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('live_games')
-      .insert({ game_type: gameType, team1: t1, team2: t2, score1: 0, score2: 0, is_active: true, updated_at: new Date().toISOString() })
+      .insert({ game_type: gameType, team1: t1, team2: t2, score1: 0, score2: 0, history: [], is_active: true, updated_at: new Date().toISOString() })
       .select('id')
       .single()
-    if (!data) return
+    if (error || !data) {
+      setStartError(error?.message ?? '경기 시작 실패')
+      return
+    }
     setScore1(0)
     setScore2(0)
     setHistory([])
@@ -123,10 +129,11 @@ export default function LivePage() {
   function addPoint(team: 1 | 2) {
     const newScore1 = team === 1 ? score1 + 1 : score1
     const newScore2 = team === 2 ? score2 + 1 : score2
+    const newHistory: (1 | 2)[] = [...history, team]
     setScore1(newScore1)
     setScore2(newScore2)
-    setHistory(h => [...h, team])
-    broadcastScore(newScore1, newScore2)
+    setHistory(newHistory)
+    broadcastScore(newScore1, newScore2, newHistory)
   }
 
   function undoLast() {
@@ -134,10 +141,11 @@ export default function LivePage() {
     const last = history[history.length - 1]
     const newScore1 = last === 1 ? Math.max(0, score1 - 1) : score1
     const newScore2 = last === 2 ? Math.max(0, score2 - 1) : score2
+    const newHistory = history.slice(0, -1) as (1 | 2)[]
     setScore1(newScore1)
     setScore2(newScore2)
-    setHistory(h => h.slice(0, -1))
-    broadcastScore(newScore1, newScore2)
+    setHistory(newHistory)
+    broadcastScore(newScore1, newScore2, newHistory)
   }
 
   async function getMemberIdForPlayer(player: LivePlayer): Promise<string | null> {
@@ -390,16 +398,22 @@ export default function LivePage() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-400 text-center">미등록 회원은 &quot;게스트로 직접 입력&quot;을 선택하세요</p>
-
             {playersReady && (
               <button
                 onClick={startGame}
-                className="mt-auto bg-green-500 text-white py-3 rounded-xl font-semibold text-base"
+                className="bg-green-500 text-white py-3 rounded-xl font-semibold text-base"
               >
                 라이브 시작
               </button>
             )}
+
+            {startError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+                {startError}
+              </div>
+            )}
+
+            <p className="text-xs text-gray-400 text-center">미등록 회원은 &quot;게스트로 직접 입력&quot;을 선택하세요</p>
           </>
         )}
 

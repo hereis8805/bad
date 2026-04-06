@@ -12,6 +12,14 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* =============================================
    THEME 2 — Emerald (에메랄드)
    50=#ecfdf5  100=#d1fae5  200=#a7f3d0
